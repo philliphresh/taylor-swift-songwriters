@@ -1,0 +1,116 @@
+---
+title: "Data Scraping"
+author: "Phillip Sanderell"
+format: html
+editor: visual
+---
+
+## Load packages
+
+```{r}
+library(tidyverse)
+library(rvest)
+```
+
+## Read Wikipedia page
+
+```{r}
+url <- "https://en.wikipedia.org/wiki/List_of_songs_by_Taylor_Swift"
+
+page <- read_html(url)
+```
+
+## Extract raw song names
+
+```{r}
+songs_raw <- 
+  page |> 
+  html_elements('table') |> # Selects all the tables
+  (\(x) x[3])() |> # Subsets to the table we want
+  html_elements('tr') |> # Gets all table rows
+  (\(x) x[-1])() |> # Removes the first row, which is the header
+  map(\(x) html_elements(x, "th")) |> # Extracts the second
+  # column in the body (note, the stub column has a th tag).
+  map(\(x) html_text2(x)) # Parse text
+
+song
+```
+
+## Extract raw artist names
+
+```{r}
+artists_raw <- 
+  page |> 
+  html_elements('table') |> # Selects all the tables
+  (\(x) x[3])() |> # Subsets to the table we want
+  html_elements('tr') |> # Gets all table rows
+  (\(x) x[-1])() |> # Removes the first row, which is the header
+  map(\(x) html_elements(x, "td")[1]) |> # Extracts the first
+  # column in the body (note, the stub column has a th tag).
+  map(\(x) html_text2(x)) # Parse text
+
+artists_raw |> glimpse()
+```
+
+## Extract raw songwriter names
+
+```{r}
+songwriters_raw <- 
+  page |> 
+  html_elements('table') |> # Selects all the tables
+  (\(x) x[3])() |> # Subsets to the table we want
+  html_elements('tr') |> # Gets all table rows
+  (\(x) x[-1])() |> # Removes the first row, which is the header
+  map(\(x) html_elements(x, "td")[2]) |> # Extracts the second
+  # column in the body (note, the stub column has a th tag).
+  map(\(x) html_text2(x)) # Parse text
+
+# this code was able to get a vector of the writers column with songwriters separated by \n. I still need to separate elements by the \n as a delimiter and clean up names like trimming spaces and removing the ‡ symbol.
+
+songwriters_raw |> glimpse()
+```
+
+## Extract raw album names
+
+```{r}
+albums_raw <- 
+  page |> 
+  html_elements('table') |> # Selects all the tables
+  (\(x) x[3])() |> # Subsets to the table we want
+  html_elements('tr') |> # Gets all table rows
+  (\(x) x[-1])() |> # Removes the first row, which is the header
+  map(\(x) html_elements(x, "td")[3]) |> # Extracts the third
+  # column in the body (note, the stub column has a th tag).
+  map(\(x) html_text2(x)) # Parse text
+
+albums_raw |> glimpse()
+```
+
+## Extract raw release years
+
+```{r}
+year_raw <- 
+  page |> 
+  html_elements('table') |> # Selects all the tables
+  (\(x) x[3])() |> # Subsets to the table we want
+  html_elements('tr') |> # Gets all table rows
+  (\(x) x[-1])() |> # Removes the first row, which is the header
+  map(\(x) html_elements(x, "td")[4]) |> # Extracts the fourth
+  # column in the body (note, the stub column has a th tag).
+  map(\(x) html_text2(x)) # Parse text
+
+year_raw |> glimpse()
+```
+
+## Combine raw vectors into one dataframe
+
+```{r}
+raw_ts_songs <- 
+  data.frame(
+  song = unlist(songs_raw),
+  artist = unlist(artists_raw),
+  songwriters = unlist(songwriters_raw),
+  albums = unlist(albums_raw),
+  year = unlist(year_raw)
+)
+```
