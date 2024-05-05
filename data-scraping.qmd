@@ -33,7 +33,7 @@ songs_raw <-
   # column in the body (note, the stub column has a th tag).
   map(\(x) html_text2(x)) # Parse text
 
-song
+songs_raw |> glimpse()
 ```
 
 ## Extract raw artist names
@@ -112,5 +112,46 @@ raw_ts_songs <-
   songwriters = unlist(songwriters_raw),
   albums = unlist(albums_raw),
   year = unlist(year_raw)
+)
+```
+
+## Clean the dataframe
+
+```{r}
+ts_clean <- 
+  raw_ts_songs |> 
+  # Clean artist column
+  mutate(
+    artist = str_replace_all(artist, "featuring", "\n"),
+    artist = str_replace_all(artist, " and ", ""),
+    artist = str_replace_all(artist, "\n\n", "\n"),
+    artist = str_split(artist, "\n"),
+    artist = map(artist, trimws)
+    ) |> 
+  # Clean songwriters column
+  mutate(
+    songwriters = str_replace_all(songwriters, "‡", ""),
+    songwriters = trimws(songwriters),
+    songwriters = str_split(songwriters, "\n")
+  ) |> 
+  # Clean albums column
+  mutate(
+    albums = str_replace_all(albums, "\n\\(", ' ('),
+    albums = str_replace_all(albums, "\\[\\w\\]", '')
+  ) |> 
+  # Clean years column
+  mutate(
+    year = str_split(year, " and "),
+    year = map(year, as.numeric)
+  ) |> 
+  print()
+```
+
+## Write clean data to .Rdata
+
+```{r}
+save(
+  ts_clean,
+  file = "ts-clean.rdata"
 )
 ```
