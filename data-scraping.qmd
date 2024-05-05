@@ -120,6 +120,11 @@ raw_ts_songs <-
 ```{r}
 ts_clean <- 
   raw_ts_songs |> 
+  # Remove any footnotes
+  mutate(across(everything(), 
+                \(x) str_replace_all(x, "\\[\\w\\]", ''))) |> 
+  mutate(across(everything(), 
+                \(x) str_replace_all(x, "‡", ''))) |> 
   # Clean artist column
   mutate(
     artist = str_replace_all(artist, "featuring", "\n"),
@@ -130,14 +135,12 @@ ts_clean <-
     ) |> 
   # Clean songwriters column
   mutate(
-    songwriters = str_replace_all(songwriters, "‡", ""),
     songwriters = trimws(songwriters),
     songwriters = str_split(songwriters, "\n")
   ) |> 
   # Clean albums column
   mutate(
     albums = str_replace_all(albums, "\n\\(", ' ('),
-    albums = str_replace_all(albums, "\\[\\w\\]", '')
   ) |> 
   # Clean years column
   mutate(
