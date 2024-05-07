@@ -1,0 +1,237 @@
+---
+title: "Viz and Analysis"
+author: "Phillip Sanderell"
+format: html
+editor: visual
+---
+
+## Load the scraped data
+
+```{r}
+load("ts-clean.rdata")
+ts <- ts_clean
+remove(ts_clean)
+```
+
+## Bin album labels into main albums
+
+```{r}
+main_albums <- 
+  c(
+  "Taylor Swift",
+  "Fearless",
+  "Speak Now",
+  "Red",
+  "1989",
+  "Reputation",
+  "Lover",
+  "Folklore",
+  "Evermore",
+  "Midnights",
+  "The Tortured Poets Department"
+)
+```
+
+```{r}
+ts <- 
+  ts |> 
+  rowwise() |> 
+  mutate(
+    main_album = 
+      str_detect(albums, main_albums) |> 
+      match(TRUE, table = _) |> 
+      {\(x) main_albums[x]}()
+  ) |> 
+  ungroup()
+```
+
+## Subset to main songs in discography
+
+```{r}
+main_songs <- 
+  ts |> 
+  # Filter out songs that weren't part of a main album
+  filter(!is.na(main_album)) |> 
+  # Filter out remixes
+  filter(!str_detect(song, "remix")) |> 
+  # Don't double count 10 minute versions :)
+  filter(!str_detect(song, "10 minute version"))
+```
+
+## Did any main songs not include Taylor Swift as a songwriter?
+
+```{r}
+main_songs |> 
+  rowwise() |> 
+  mutate(
+    ts =
+      str_detect(songwriters, "Taylor") |>
+      any()
+  ) |> 
+  arrange(ts * 1)
+```
+
+The only songs that don't include Taylor Swift as songwriter are covers from her Speak Now World Tour – Live album. Let's filter these out as well.
+
+```{r}
+main_songs <-
+  main_songs |> 
+  # Filter out live covers
+  filter(!str_detect(song, 'live cover')) |> 
+  arrange(main_album)
+```
+
+Let's look at top collaborating songwriters now.
+
+```{r}
+main_songs |> 
+  unnest_longer(songwriters) |> 
+  filter(songwriters != "Taylor Swift") |> 
+  count(songwriters, sort = TRUE)
+```
+
+There are a handful of major collaborators, a decent bit of collaborators with a few songs, and a good number of collaborators with just one or two songs. I'm mostly interested in the more prominent collaborators.
+
+```{r}
+main_songs <- 
+  main_songs |> 
+  unnest_longer(songwriters) |> 
+  # Mark a songwriter as "top" if they collaborated on more 
+  # than 4 songs.
+  mutate(
+    top_songwriter = length(songwriters) > 4,
+    top_songwriter = if_else(
+      top_songwriter, 
+      songwriters, 
+      "other"
+      ), 
+    .by = songwriters
+  )
+```
+
+I'm interested in the distribution of songwriters across albums in chronological order.
+
+```{r}
+theme_set(theme_minimal())
+
+main_songs |> 
+  filter(songwriters != "Taylor Swift") |> 
+  mutate(main_album = fct_relevel(main_album, main_albums)) |> 
+  ggplot(aes(x = main_album, fill = top_songwriter)) +
+  geom_bar() + 
+  coord_flip()
+```
+
+It's interesting that there is a very small number of songs on Speak Now with a songwriter other than Taylor Swift. Did she basically write most of her songs alone on that album?
+
+```{r}
+main_songs |> 
+  filter(main_album == "Speak Now")
+```
+
+She really did. An icon!
+
+Next, I'm thinking it might be easier to see popularity of collaborators if I fill by album.
+
+```{r}
+main_songs |> 
+  filter(songwriters != "Taylor Swift") |> 
+  mutate(main_album = fct_relevel(main_album, main_albums)) |> 
+  mutate(top_songwriter = fct_reorder(top_songwriter,
+                                      top_songwriter,
+                                      length)) |> 
+  
+  ggplot(aes(fill = main_album, y = top_songwriter)) +
+  geom_bar() +
+  scale_fill_brewer(palette = "RdYlGn")
+```
+
+I need a more easily readable color palette. Let's try making one that aligns with the album covers.
+
+```{r}
+ts_colors <- 
+  c(
+    "Taylor Swift" = '#6cd4ff',
+    "Fearless" = '#ffd166',
+    "Speak Now" = '#b118c8',
+    "Red" = '#d00000',
+    "1989" = '#9CFFFA',
+    "Reputation" = '#2a2d34',
+    "Lover" = '#f49fbc',
+    "Folklore" = '#94958b',
+    "Evermore" = '#ff521b',
+    "Midnights" = '#89a6fb',
+    "The Tortured Poets Department" = '#393e41'
+  )
+```
+
+```{r}
+main_songs |> 
+  filter(songwriters != "Taylor Swift") |> 
+  mutate(main_album = fct_relevel(main_album, 
+                                  rev(main_albums))) |> #reverse
+  mutate(top_songwriter = fct_reorder(top_songwriter,
+                                      top_songwriter,
+                                      length)) |> 
+  
+  ggplot(aes(fill = main_album, y = top_songwriter)) +
+  geom_bar() +
+  scale_fill_manual(values = ts_colors)
+```
+
+Now let's try making the legend easier to read.
+
+```{r, fig.width=6, fig.height=5}
+main_songs |> 
+  filter(songwriters != "Taylor Swift") |> 
+  mutate(top_songwriter = 
+           if_else(top_songwriter == 'other', 
+                 'Songwriters other than the rest listed',
+                 top_songwriter)) |> 
+  mutate(main_album = fct_relevel(main_album, 
+                                  rev(main_albums))) |> #reverse
+  mutate(top_songwriter = fct_reorder(top_songwriter,
+                                      top_songwriter,
+                                      length)) |> 
+  mutate(top_songwriter = fct_rev(top_songwriter)) |> 
+  ggplot(aes(fill = main_album, y = top_songwriter)) +
+  geom_bar(width = 1) +
+  facet_wrap(~ top_songwriter, ncol = 1, scales = "free_y") +
+  labs(
+    title = 'Jack Antonoff has worked on every album since 1989',
+    subtitle = '\nTop songwriters on Taylor Swift songs',
+    y = NULL,
+    x = 'Song count',
+  ) +
+  scale_x_continuous(
+    expand = c(0, 0),
+    limits = c(0, 80),
+    position = 'top'
+  ) +
+  scale_fill_manual(
+    values = ts_colors,
+    guide = guide_legend(reverse = TRUE,
+                         nrow = 3),
+    labels = main_albums |> 
+      rev()
+      # str_wrap(20)
+    ) +
+  scale_y_discrete(guide = 'none') +
+  theme(
+    title = element_text(face = 'bold'),
+    legend.position = "top",
+    legend.title = element_blank(),
+    axis.title.x = element_text(hjust = 1),
+    legend.key.height = rel(.6),
+    legend.key.width  = rel(.6),
+    legend.byrow = FALSE,
+    legend.justification = c(0, 1),
+    strip.text = element_text(
+      hjust = 0, 
+      margin = margin(1, 0, 1, 0),
+      size = rel(1), 
+      face = 'bold'
+    ),
+    panel.grid = element_blank()
+  )
+```
