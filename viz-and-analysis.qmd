@@ -152,12 +152,14 @@ main_songs |>
   scale_fill_brewer(palette = "RdYlGn")
 ```
 
+## Making polished graphic
+
 I need a more easily readable color palette. Let's try making one that aligns with the album covers.
 
 ```{r}
 ts_colors <- 
   c(
-    "Taylor Swift" = '#6cd4ff',
+    "Taylor Swift" = '#74d3ae',
     "Fearless" = '#ffd166',
     "Speak Now" = '#b118c8',
     "Red" = '#d00000',
@@ -167,7 +169,7 @@ ts_colors <-
     "Folklore" = '#94958b',
     "Evermore" = '#ff521b',
     "Midnights" = '#89a6fb',
-    "The Tortured Poets Department" = '#393e41'
+    "The Tortured Poets Department" = '#cdd1de'
   )
 ```
 
@@ -185,80 +187,7 @@ main_songs |>
   scale_fill_manual(values = ts_colors)
 ```
 
-Now let's try making the legend easier to read.
-
-```{r, fig.width=5, fig.height=5}
-main_songs |> 
-  filter(songwriters != "Taylor Swift") |> 
-  mutate(top_songwriter = 
-           if_else(top_songwriter == 'other', 
-                 'other (Songwriters other than the rest listed)',
-                 top_songwriter)) |> 
-  mutate(main_album = fct_relevel(main_album, 
-                                  rev(main_albums))) |> #reverse
-  mutate(top_songwriter = fct_reorder(top_songwriter,
-                                      top_songwriter,
-                                      length)) |> 
-  mutate(top_songwriter = fct_rev(top_songwriter)) |> 
-  ggplot(aes(fill = main_album, y = top_songwriter)) +
-  geom_bar(width = 1) +
-  facet_wrap(~ top_songwriter, ncol = 1, scales = "free_y") +
-  labs(
-    title = 'Top songwriters on Taylor Swift songs',
-    subtitle = 'Jack Antonoff has worked on every album since 1989',
-    y = NULL,
-    x = NULL,
-  ) +
-  scale_x_continuous(
-    expand = c(0, 0),
-    limits = c(0, 83),
-    position = 'top',
-    labels = c(0, "20 songs...", 40, 60, 80)
-  ) +
-  scale_fill_manual(
-    values = ts_colors,
-    guide = guide_legend(reverse = TRUE,
-                         nrow = 3,
-                         title = 'Albums'),
-    labels = main_albums |> 
-      rev()
-      # str_wrap(20)
-    ) +
-  scale_y_discrete(guide = 'none') +
-  theme_minimal() +
-  theme(
-    text = element_text(family = 'Inter'),
-    plot.title = element_text(size = rel(1.88),
-                              family = 'DM Serif Display'),
-    plot.subtitle = element_text(margin = margin(b = rel(20)),
-                                 color = 'gray60'),
-    legend.position = "top",
-    legend.title = element_text(face = 'bold', size = rel(.9)),
-    legend.title.position = 'top',
-    axis.title.x = element_text(hjust = 1),
-    axis.text.x = element_text(hjust = 0, color = 'gray70'),
-    legend.key.height = rel(.6),
-    legend.key.width  = rel(.6),
-    legend.byrow = FALSE,
-    legend.justification = c(0, 1),
-    legend.margin = margin(0, 0, rel(7), 0),
-    strip.text = element_text(
-      hjust = 0, 
-      margin = margin(1, 0, 1, 0),
-      size = rel(1), 
-      face = 'bold'
-    ),
-    panel.grid = element_blank()
-  )
-```
-
--   Need to change font, at least for the title.
-
--   Need to add captions.
-
--   Might need to add more margins around the whole plot at the end.
-
--   Need to put '1989' in italics (if I can with this font and `{ggtext}`).
+Let's load in some custom fonts.
 
 ```{r}
 # Load google font
@@ -284,3 +213,130 @@ gg_record(
 ```
 
 Update: it wasn't working because I was saying to use a 'bold' face when there isn't a bold version of that font on my computer. After removing the 'bold' face argument, the correct font loaded.
+
+Add in the social tags for the caption.
+
+```{r}
+# Create social caption
+# Credit to @tashapiro for the social_caption function
+source("social-caption.R")
+caption <- paste0("<span style = 'font-family:Inter;'>Source: Wikipedia</span>", 
+                  "<span style='color:white;'>...</span>", "|", 
+                  "<span style='color:white;'>...</span>", 
+                 social_caption(icon_color ="black", 
+                                bg_color = NA, 
+                                font_color = "black",
+                                font_family="Inter",
+                                twitter = "@Philli_Phresh",
+                                github = "philliphresh",
+                                linkedin="phillip-sanderell"))
+
+library(ggtext)
+```
+
+Write the subtitle
+
+```{r}
+subtitle <- 
+  paste0('Jack Antonoff has worked on every album since 1989')
+```
+
+The final plot.
+
+```{r, fig.width=5, fig.height=5}
+(p <- main_songs |> 
+  filter(songwriters != "Taylor Swift") |> 
+  # Sort albums in chronological order
+  mutate(main_album = fct_relevel(main_album, 
+                                  rev(main_albums))) |> #reverse
+  # Sort songwriters with most songs first
+  mutate(top_songwriter = 
+           if_else(top_songwriter == 'other', 
+                 'other (Songwriters other than the rest listed)',
+                 top_songwriter)) |> 
+  mutate(top_songwriter = fct_reorder(top_songwriter,
+                                      top_songwriter,
+                                      length)) |> 
+  mutate(top_songwriter = fct_rev(top_songwriter)) |> 
+  # Move other songwriters to the bottom
+  mutate(top_songwriter = 
+           fct_relevel(
+             top_songwriter,
+             'other (Songwriters other than the rest listed)',
+             after = Inf
+           )) |> 
+  # Start plot
+  ggplot(aes(fill = main_album, y = top_songwriter)) +
+  geom_bar(width = 1) +
+  facet_wrap(~ top_songwriter, ncol = 1, scales = "free_y") +
+  labs(
+    title = 'Top songwriters on Taylor Swift songs',
+    subtitle = subtitle,
+    y = NULL,
+    x = NULL,
+    caption = caption,
+  ) +
+  scale_x_continuous(
+    expand = c(0, 0),
+    limits = c(0, 83),
+    position = 'top',
+    labels = c(0, "20 songs...", 40, 60, 80)
+  ) +
+  scale_fill_manual(
+    values = ts_colors,
+    guide = guide_legend(reverse = TRUE,
+                         nrow = 3,
+                         title = 'Albums'),
+    labels = main_albums |> 
+      rev()
+      # str_wrap(20)
+    ) +
+  scale_y_discrete(guide = 'none') +
+  theme_minimal() +
+  theme(
+    # Text
+    text = element_text(family = 'Inter'),
+    plot.title = element_text(size = rel(1.7),
+                              family = 'DM Serif Display'),
+    plot.subtitle = element_markdown(margin = margin(b = rel(13)),
+                                 color = 'gray60'),
+    plot.caption = element_markdown(size = rel(.7),
+                                    margin = margin(rel(15), , rel(5))),
+    # Legend
+    legend.position = "top",
+    legend.title = element_text(face = 'bold', size = rel(.8)),
+    legend.text = element_text(margin = margin(, , , rel(3))),
+    legend.title.position = 'top',
+    legend.key.height = rel(.5),
+    legend.key.width  = rel(.5),
+    legend.byrow = FALSE,
+    legend.justification = c(0, 1),
+    legend.margin = margin(0, 0, rel(6), 0),
+    # Axis
+    axis.title.x = element_text(hjust = 1),
+    axis.text.x = element_text(hjust = 0, color = 'gray70'),
+    # Fact strips
+    strip.text = element_text(
+      hjust = 0, 
+      margin = margin(rel(1), 0, rel(1), 0),
+      size = rel(.8), 
+      face = 'bold'
+    ),
+    # Gridlines
+    panel.grid = element_blank(),
+    # Plot margin
+    plot.margin = margin(rel(20), rel(20), rel(1), rel(20))
+  )
+)
+```
+
+Save the plot.
+
+```{r}
+ggsave(
+  'ts-songwriters-by-album.svg',
+  p,
+  width = 5,
+  height = 5
+)
+```
