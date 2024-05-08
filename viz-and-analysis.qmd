@@ -155,7 +155,7 @@ ts_colors <-
     "Fearless" = '#ffd166',
     "Speak Now" = '#b118c8',
     "Red" = '#d00000',
-    "1989" = '#9CFFFA',
+    "1989" = '#FBD1A2',
     "Reputation" = '#2a2d34',
     "Lover" = '#f49fbc',
     "Folklore" = '#94958b',
@@ -181,7 +181,7 @@ main_songs |>
 
 Now let's try making the legend easier to read.
 
-```{r, fig.width=6, fig.height=5}
+```{r, fig.width=5, fig.height=5}
 main_songs |> 
   filter(songwriters != "Taylor Swift") |> 
   mutate(top_songwriter = 
@@ -198,34 +198,42 @@ main_songs |>
   geom_bar(width = 1) +
   facet_wrap(~ top_songwriter, ncol = 1, scales = "free_y") +
   labs(
-    title = 'Jack Antonoff has worked on every album since 1989',
-    subtitle = '\nTop songwriters on Taylor Swift songs',
+    title = 'Top songwriters on Taylor Swift songs',
+    subtitle = 'Jack Antonoff has worked on every album since 1989',
     y = NULL,
-    x = 'Song count',
+    x = NULL,
   ) +
   scale_x_continuous(
     expand = c(0, 0),
-    limits = c(0, 80),
-    position = 'top'
+    limits = c(0, 83),
+    position = 'top',
+    labels = c(0, "20 songs...", 40, 60, 80)
   ) +
   scale_fill_manual(
     values = ts_colors,
     guide = guide_legend(reverse = TRUE,
-                         nrow = 3),
+                         nrow = 3,
+                         title = 'Albums'),
     labels = main_albums |> 
       rev()
       # str_wrap(20)
     ) +
   scale_y_discrete(guide = 'none') +
   theme(
-    title = element_text(face = 'bold'),
+    text = element_text(family = 'Helvetica'),
+    plot.title = element_text(face = 'bold', size = rel(1.2),
+                              family = 'DM Serif Display'),
+    plot.subtitle = element_text(margin = margin(b = rel(20))),
     legend.position = "top",
-    legend.title = element_blank(),
+    legend.title = element_text(face = 'bold', size = rel(.8)),
+    legend.title.position = 'top',
     axis.title.x = element_text(hjust = 1),
+    axis.text.x = element_text(hjust = 0),
     legend.key.height = rel(.6),
     legend.key.width  = rel(.6),
     legend.byrow = FALSE,
     legend.justification = c(0, 1),
+    legend.margin = margin(0, 0, rel(7), 0),
     strip.text = element_text(
       hjust = 0, 
       margin = margin(1, 0, 1, 0),
@@ -234,4 +242,17 @@ main_songs |>
     ),
     panel.grid = element_blank()
   )
+```
+
+-   
+
+-   Need to change font, at least for the title.
+
+-   Need to add captions.
+
+-   Might need to add more margins around the whole plot at the end.
+
+```{r}
+# Load google font
+sysfonts::font_add_google('DM Serif Display')
 ```
