@@ -339,4 +339,13 @@ ggsave(
   width = 5,
   height = 5
 )
+
+ggsave(
+  'ts-songwriters-by-album.png',
+  p +
+    theme(plot.background = element_rect(fill = 'white')),
+  width = 5,
+  height = 5,
+  dpi = 600,
+)
 ```
