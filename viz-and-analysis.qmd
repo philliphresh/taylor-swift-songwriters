@@ -13,6 +13,12 @@ ts <- ts_clean
 remove(ts_clean)
 ```
 
+## Load packages
+
+```{r, message=FALSE}
+library(tidyverse)
+```
+
 ## Bin album labels into main albums
 
 ```{r}
@@ -186,7 +192,7 @@ main_songs |>
   filter(songwriters != "Taylor Swift") |> 
   mutate(top_songwriter = 
            if_else(top_songwriter == 'other', 
-                 'Songwriters other than the rest listed',
+                 'other (Songwriters other than the rest listed)',
                  top_songwriter)) |> 
   mutate(main_album = fct_relevel(main_album, 
                                   rev(main_albums))) |> #reverse
@@ -219,16 +225,18 @@ main_songs |>
       # str_wrap(20)
     ) +
   scale_y_discrete(guide = 'none') +
+  theme_minimal() +
   theme(
-    text = element_text(family = 'Helvetica'),
-    plot.title = element_text(face = 'bold', size = rel(1.2),
+    text = element_text(family = 'Inter'),
+    plot.title = element_text(size = rel(1.88),
                               family = 'DM Serif Display'),
-    plot.subtitle = element_text(margin = margin(b = rel(20))),
+    plot.subtitle = element_text(margin = margin(b = rel(20)),
+                                 color = 'gray60'),
     legend.position = "top",
-    legend.title = element_text(face = 'bold', size = rel(.8)),
+    legend.title = element_text(face = 'bold', size = rel(.9)),
     legend.title.position = 'top',
     axis.title.x = element_text(hjust = 1),
-    axis.text.x = element_text(hjust = 0),
+    axis.text.x = element_text(hjust = 0, color = 'gray70'),
     legend.key.height = rel(.6),
     legend.key.width  = rel(.6),
     legend.byrow = FALSE,
@@ -244,15 +252,35 @@ main_songs |>
   )
 ```
 
--   
-
 -   Need to change font, at least for the title.
 
 -   Need to add captions.
 
 -   Might need to add more margins around the whole plot at the end.
 
+-   Need to put '1989' in italics (if I can with this font and `{ggtext}`).
+
 ```{r}
 # Load google font
-sysfonts::font_add_google('DM Serif Display')
+library(sysfonts)
+sysfonts::font_add_google('Inter')
 ```
+
+I'm having trouble viewing this font and troubleshooting that led to my `.qmd` preview of the visualization becoming blurry. So, I'm loading up the `{camcorder}` package.
+
+```{r}
+library(camcorder)
+
+temp_dir <- file.path(tempdir(), "recording100")
+
+gg_record(
+  dir = temp_dir, # where to save the recording
+  device = "png", # device to use to save images
+  width = 5,      # width of saved image
+  height = 5,     # height of saved image
+  units = "in",   # units for width and height
+  dpi = 320       # dpi to use when saving image
+)
+```
+
+Update: it wasn't working because I was saying to use a 'bold' face when there isn't a bold version of that font on my computer. After removing the 'bold' face argument, the correct font loaded.
