@@ -34,7 +34,8 @@ main_albums <-
   "Folklore",
   "Evermore",
   "Midnights",
-  "The Tortured Poets Department"
+  "The Tortured Poets Department",
+  "The Life of a Showgirl"
 )
 ```
 
@@ -148,8 +149,7 @@ main_songs |>
                                       length)) |> 
   
   ggplot(aes(fill = main_album, y = top_songwriter)) +
-  geom_bar() +
-  scale_fill_brewer(palette = "RdYlGn")
+  geom_bar()
 ```
 
 ## Making polished graphic
@@ -167,9 +167,10 @@ ts_colors <-
     "Reputation" = '#2a2d34',
     "Lover" = '#f49fbc',
     "Folklore" = '#94958b',
-    "Evermore" = '#ff521b',
+    "Evermore" = '#7F675B',
     "Midnights" = '#89a6fb',
-    "The Tortured Poets Department" = '#cdd1de'
+    "The Tortured Poets Department" = '#cdd1de',
+    "The Life of a Showgirl" = '#ff521b'
   )
 ```
 
@@ -238,7 +239,7 @@ Write the subtitle
 
 ```{r}
 subtitle <- 
-  paste0('Jack Antonoff has worked on every album since 1989')
+  paste0('The Life of a Max Martin and Shellback')
 ```
 
 The final plot.
